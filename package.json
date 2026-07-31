@@ -1,0 +1,24 @@
+{
+  "name": "nexora-ai-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nexora AI - Intelligent Browser Copilot Monorepo",
+  "scripts": {
+    "dev:server": "npm --prefix server run dev",
+    "build:server": "npm --prefix server run build",
+    "build:extension": "npm --prefix extension run build",
+    "build": "npm run build:server && npm run build:extension",
+    "start:server": "npm --prefix server start"
+  },
+  "keywords": [
+    "chrome-extension",
+    "browser-copilot",
+    "ai",
+    "gemini",
+    "react",
+    "typescript",
+    "express"
+  ],
+  "author": "Nexora AI Team",
+  "license": "MIT"
+}
