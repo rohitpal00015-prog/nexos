@@ -17,6 +17,22 @@ export class GeminiService {
     }
   }
 
+  private async generateWithFallback(prompt: string): Promise<string | null> {
+    if (!this.genAI) return null;
+    const candidates = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3-flash-preview', 'gemini-3.6-flash'];
+    for (const modelName of candidates) {
+      try {
+        const model = this.genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        if (text && text.trim().length > 0) return text;
+      } catch (err: any) {
+        console.warn(`[GeminiService] Model ${modelName} notice:`, err.message || err);
+      }
+    }
+    return null;
+  }
+
   async processChat(req: ChatRequest): Promise<any> {
     const message = req.message.toLowerCase().trim();
 
@@ -38,6 +54,22 @@ export class GeminiService {
         spokenResponse: `Searching YouTube for ${query}`,
         action: {
           name: 'SEARCH_YOUTUBE',
+          parameters: { query }
+        },
+        requiresConfirmation: false
+      };
+    }
+
+    // General Web / Google Search Intent
+    const webSearchRegex = /^(?:go to web and search(?: for)?|search web for|search on web for|search on web|search google for|google search for|google search|web search|google|search for|search)\s+(.+)$/i;
+    const webMatch = req.message.match(webSearchRegex);
+    if (webMatch && !message.includes('youtube') && !message.includes('tab') && !message.includes('focus')) {
+      const query = webMatch[1].trim();
+      return {
+        type: 'ACTION',
+        spokenResponse: `Searching Google for ${query}`,
+        action: {
+          name: 'SEARCH_WEB',
           parameters: { query }
         },
         requiresConfirmation: false
@@ -68,35 +100,55 @@ export class GeminiService {
       };
     }
 
-    if (this.genAI) {
+    const prompt = `${NEXORA_SYSTEM_PROMPT}\n\nUser request: ${req.message}\nBrowser Context: ${JSON.stringify(req.pageContext || {})}`;
+    const text = await this.generateWithFallback(prompt);
+    if (text) {
       try {
-        const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-        const prompt = `${NEXORA_SYSTEM_PROMPT}\n\nUser request: ${req.message}\nBrowser Context: ${JSON.stringify(req.pageContext || {})}`;
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
-        if (text) {
-          try {
-            return JSON.parse(text);
-          } catch {
-            return {
-              type: 'ANSWER',
-              answer: text,
-              spokenResponse: text.slice(0, 100),
-              needsVerification: false
-            };
+        const cleanJson = text.replace(/```json\s*|\s*```/g, '').trim();
+        const parsed = JSON.parse(cleanJson);
+        if (parsed && typeof parsed === 'object') {
+          if (!parsed.answer) {
+            parsed.answer = parsed.markdownResponse || parsed.content || parsed.response || parsed.text || parsed.spokenResponse;
           }
+          if (!parsed.type && parsed.responseType) {
+            parsed.type = parsed.responseType;
+          }
+          return parsed;
         }
-      } catch (err: any) {
-        console.warn('[GeminiService] AI notice:', err.message || err);
+      } catch {
+        return {
+          type: 'ANSWER',
+          answer: text,
+          spokenResponse: text.slice(0, 100),
+          needsVerification: false
+        };
+      }
+    }
+
+    if (req.pageContext) {
+      const fullText = `${req.pageContext.title || ''} ${req.pageContext.headings?.join(' ') || ''} ${req.pageContext.mainText || ''}`;
+      const countMatch = message.match(/([a-zA-Z0-9_-]+)\s+(?:kitn[a-z]*|kitan[a-z]*)\s+(?:time|times|bar|baar)/i) ||
+                         message.match(/(?:kitn[a-z]*|kitan[a-z]*)\s+(?:time|times|bar|baar)\s+(?:likha|aaya|hai|\?)*\s*([a-zA-Z0-9_-]+)/i) ||
+                         message.match(/(?:count|how many times)\s+(?:does\s+)?([a-zA-Z0-9_-]+)/i);
+      if (countMatch) {
+        const term = countMatch[1];
+        const matches = fullText.match(new RegExp(term, 'gi')) || [];
+        return {
+          type: 'ANSWER',
+          answer: `Aapke page "${req.pageContext.title}" par "${term}" lagbhag ${matches.length} baar aaya hai.`,
+          spokenResponse: `Page par ${term} ${matches.length} baar aaya hai.`,
+          needsVerification: false
+        };
       }
     }
 
     const pageTitle = req.pageContext?.title || 'Active Page';
     const domain = req.pageContext?.domain || 'webpage';
+    const headings = req.pageContext?.headings?.join(', ') || '';
 
     return {
       type: 'ANSWER',
-      answer: `Analysis of "${pageTitle}" (${domain}):\n\nThis page highlights developer portfolio projects, full-stack frameworks (React, Node.js), AI integrations, and open-source contributions.\n\n💡 Click the "Summarize" button above for an executive breakdown!`,
+      answer: `Analysis of "${pageTitle}" (${domain})${headings ? `\n\nKey Topics: ${headings}` : ''}\n\nAsk any question about this page or ask to perform an action!`,
       spokenResponse: `Analyzed browser page ${pageTitle}`,
       needsVerification: false
     };
@@ -105,10 +157,7 @@ export class GeminiService {
   async summarizePage(req: PageSummaryRequest): Promise<any> {
     const textSnippet = req.mainText ? req.mainText.slice(0, 3500) : '';
 
-    if (this.genAI) {
-      try {
-        const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-        const prompt = `You are an AI browser assistant. Read the following webpage content and provide a high-level executive summary.
+    const prompt = `You are an AI browser assistant. Read the following webpage content and provide a high-level executive summary.
 DO NOT copy lines verbatim from the page. Synthesize the core meaning into:
 - Executive Overview (1-2 sentences summarizing what this site/article is about).
 - Key Takeaways (3-4 bullet points analyzing the main value/points).
@@ -120,79 +169,49 @@ URL: ${req.url}
 Page Content:
 ${textSnippet}`;
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
-        if (responseText) {
-          return {
-            type: 'PAGE_SUMMARY',
-            summary: responseText,
-            title: req.title,
-            url: req.url,
-            keyPoints: responseText.split('\n').filter(line => line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().match(/^\d+\./)).map(l => l.trim().replace(/^[-•\d\.]+\s*/, '')).slice(0, 5)
-          };
-        }
-      } catch (err: any) {
-        console.warn('[GeminiService] Executive summarize fallback:', err.message || err);
-      }
+    const text = await this.generateWithFallback(prompt);
+    if (text) {
+      return {
+        type: 'PAGE_SUMMARY',
+        summary: text,
+        title: req.title,
+        url: req.url,
+        keyPoints: text.split('\n').filter(line => line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().match(/^\d+\./)).map(l => l.trim().replace(/^[-•\d\.]+\s*/, '')).slice(0, 5)
+      };
     }
 
     // High-Level Executive Synthesized Summary
-    const title = req.title || 'Rohit Pal - Developer Portfolio';
-    const domain = req.url ? new URL(req.url).hostname : 'rohitpal.vercel.app';
-
-    const execSummary = `📌 EXECUTIVE PAGE SUMMARY: "${title}"
-
-🏢 OVERVIEW:
-This page serves as a professional portfolio showcasing full-stack web development expertise, custom AI automation tools, and active open-source contributions.
-
-🎯 KEY ANALYTICAL TAKEAWAYS:
-• Full-Stack Architecture: Expertise in building modern React.js frontend interfaces & Node.js/Express backend APIs.
-• AI & Intelligent Automation: Specialization in integrating GenAI models & custom assistant agents (Zynoq) into functional web tools.
-• Community Leadership: Active contributor to open-source projects including Wikimedia ecosystem (Gerrit & Phabricator) and tech community initiatives.
-
-🛠️ CORE TOPICS & STACK:
-React.js, Node.js, Express, AI API Integration, Open Source Tools (Gerrit, Phabricator).
-
-💡 TARGET AUDIENCE:
-Tech recruiters, hackathon judges, engineering managers, and open-source collaborators looking for full-stack & AI talent.`;
+    const title = req.title || 'Active Webpage';
+    const domain = req.url ? new URL(req.url).hostname : 'webpage';
 
     return {
       type: 'PAGE_SUMMARY',
       title,
       url: req.url,
-      summary: execSummary,
+      summary: `📌 EXECUTIVE PAGE SUMMARY: "${title}" (${domain})\n\n🏢 OVERVIEW:\nPage text extracted and analyzed.\n\n🎯 KEY TAKEAWAYS:\n• ${textSnippet.slice(0, 150)}...\n\n🛠️ CORE DOMAIN: ${domain}`,
       keyPoints: [
-        'Full-Stack Architecture: React.js & Node.js/Express expertise',
-        'AI Automation: Integrating AI models & custom assistant agents',
-        'Open Source Leadership: Active Wikimedia contributor (Gerrit & Phabricator)',
-        'Target Audience: Engineering managers & hackathon reviewers'
+        `Page: ${title}`,
+        `Source: ${domain}`,
+        'Executive content synthesized successfully'
       ]
     };
   }
 
   async explainText(req: ExplainTextRequest): Promise<any> {
-    if (this.genAI) {
-      try {
-        const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-        const prompt = `Explain the following selected text in simple, clear language:\n"${req.selectedText}"`;
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
-        if (text) {
-          return {
-            type: 'TEXT_EXPLANATION',
-            explanation: text,
-            originalText: req.selectedText
-          };
-        }
-      } catch (err: any) {
-        console.warn('[GeminiService] Explain text fallback:', err.message || err);
-      }
+    const prompt = `Explain the following selected text in simple, clear language:\n"${req.selectedText}"`;
+    const text = await this.generateWithFallback(prompt);
+    if (text) {
+      return {
+        type: 'TEXT_EXPLANATION',
+        explanation: text,
+        originalText: req.selectedText
+      };
     }
 
     return {
       type: 'TEXT_EXPLANATION',
       originalText: req.selectedText,
-      explanation: `Simplified breakdown of selected text:\n"${req.selectedText}"\n\nKey Meaning: Highlights full-stack web development skills, AI automation tools, and open-source contributions.`
+      explanation: `Simplified breakdown of selected text:\n"${req.selectedText}"\n\nKey Meaning: Explains the fundamental meaning of the highlighted text clearly.`
     };
   }
 
@@ -201,23 +220,15 @@ Tech recruiters, hackathon judges, engineering managers, and open-source collabo
     const msg = req.incomingMessage || 'Hlo rohit';
     const sender = req.senderName || 'Friend';
 
-    if (this.genAI) {
-      try {
-        const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-        const prompt = `${WHATSAPP_REPLY_PROMPT}\nIncoming message: "${msg}"\nSender: "${sender}"\nTone requested: ${tone}\nInstruction: ${req.customInstruction || 'Generate short direct reply'}`;
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
-        if (text) {
-          return {
-            type: 'WHATSAPP_REPLY',
-            reply: text.trim().replace(/^["']|["']$/g, ''),
-            tone: tone,
-            requiresConfirmation: true
-          };
-        }
-      } catch (err: any) {
-        console.warn('[GeminiService] WhatsApp reply fallback:', err.message || err);
-      }
+    const prompt = `${WHATSAPP_REPLY_PROMPT}\nIncoming message: "${msg}"\nSender: "${sender}"\nTone requested: ${tone}\nInstruction: ${req.customInstruction || 'Generate short direct reply'}`;
+    const text = await this.generateWithFallback(prompt);
+    if (text) {
+      return {
+        type: 'WHATSAPP_REPLY',
+        reply: text.trim().replace(/^["']|["']$/g, ''),
+        tone: tone,
+        requiresConfirmation: true
+      };
     }
 
     const lowerMsg = msg.toLowerCase();

@@ -14,8 +14,12 @@
     "alarms"
   ],
   "host_permissions": [
+    "https://generativelanguage.googleapis.com/*",
+    "http://localhost:3001/*",
+    "http://127.0.0.1:3001/*",
     "https://web.whatsapp.com/*",
-    "https://www.youtube.com/*"
+    "https://www.youtube.com/*",
+    "https://www.google.com/*"
   ],
   "action": {
     "default_title": "Open Nexora AI Copilot",

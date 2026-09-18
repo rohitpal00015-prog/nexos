@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nexora AI - Microphone Permission</title>
+  <style>
+    body {
+      background-color: #020617;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 440px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 8px;
+      color: #e2e8f0;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #4338ca;
+    }
+    .status {
+      margin-top: 16px;
+      font-size: 13px;
+      min-height: 20px;
+    }
+    .success {
+      color: #34d399;
+    }
+    .error {
+      color: #f87171;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🎙️</div>
+    <h1>Enable Microphone Access</h1>
+    <p>Chrome requires granting microphone permissions in a standard tab before the Side Panel voice assistant can listen to your voice commands.</p>
+    <button id="requestBtn">Allow Microphone</button>
+    <div id="status" class="status"></div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('requestBtn');
+    const status = document.getElementById('status');
+
+    btn.addEventListener('click', async () => {
+      try {
+        status.textContent = 'Requesting permission...';
+        status.className = 'status';
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
+        status.textContent = '✅ Microphone permission granted! You can now close this tab and use voice in Nexora Side Panel.';
+        status.className = 'status success';
+        btn.textContent = 'Permission Granted';
+        btn.disabled = true;
+        btn.style.background = '#059669';
+        setTimeout(() => {
+          window.close();
+        }, 2000);
+      } catch (err) {
+        status.textContent = '❌ Microphone access was blocked. Please click the lock icon in the Chrome URL bar and allow Microphone.';
+        status.className = 'status error';
+      }
+    });
+
+    // Automatically trigger on page load
+    window.addEventListener('load', () => {
+      btn.click();
+    });
+  </script>
+</body>
+</html>

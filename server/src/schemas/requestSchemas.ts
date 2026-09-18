@@ -8,6 +8,7 @@ export const ChatRequestSchema = z.object({
     domain: z.string().optional(),
     selectedText: z.string().optional(),
     mainText: z.string().optional(),
+    headings: z.array(z.string()).optional(),
   }).optional(),
   history: z.array(z.object({
     role: z.enum(['user', 'assistant']),
@@ -52,13 +53,15 @@ export const AllowedActionNames = z.enum([
   'GO_BACK',
   'GO_FORWARD',
   'SEARCH_YOUTUBE',
+  'SEARCH_WEB',
   'GROUP_TABS',
   'CLOSE_DUPLICATE_TABS',
   'START_FOCUS_TIMER',
   'PAUSE_FOCUS_TIMER',
   'STOP_FOCUS_TIMER',
   'GET_PAGE_CONTEXT',
-  'INSERT_TEXT'
+  'INSERT_TEXT',
+  'CLEAN_SESSION'
 ]);
 
 export const ActionItemSchema = z.object({

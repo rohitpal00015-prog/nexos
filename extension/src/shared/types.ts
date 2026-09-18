@@ -17,13 +17,15 @@ export type AllowedActionName =
   | 'GO_BACK'
   | 'GO_FORWARD'
   | 'SEARCH_YOUTUBE'
+  | 'SEARCH_WEB'
   | 'GROUP_TABS'
   | 'CLOSE_DUPLICATE_TABS'
   | 'START_FOCUS_TIMER'
   | 'PAUSE_FOCUS_TIMER'
   | 'STOP_FOCUS_TIMER'
   | 'GET_PAGE_CONTEXT'
-  | 'INSERT_TEXT';
+  | 'INSERT_TEXT'
+  | 'CLEAN_SESSION';
 
 export interface ActionItem {
   name: AllowedActionName;

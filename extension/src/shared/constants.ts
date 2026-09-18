@@ -9,13 +9,15 @@ export const ALLOWED_ACTIONS = [
   'GO_BACK',
   'GO_FORWARD',
   'SEARCH_YOUTUBE',
+  'SEARCH_WEB',
   'GROUP_TABS',
   'CLOSE_DUPLICATE_TABS',
   'START_FOCUS_TIMER',
   'PAUSE_FOCUS_TIMER',
   'STOP_FOCUS_TIMER',
   'GET_PAGE_CONTEXT',
-  'INSERT_TEXT'
+  'INSERT_TEXT',
+  'CLEAN_SESSION'
 ] as const;
 
 export const BACKEND_URL = 'http://localhost:3001/api/assistant';

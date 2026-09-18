@@ -19,6 +19,24 @@ export class LocalCommandParser {
       };
     }
 
+    // 1b. General Web / Google Search
+    const webSearchRegex = /^(?:go to web and search(?: for)?|search web for|search on web for|search on web|search google for|google search for|google search|web search|google|search for|search)\s+(.+)$/i;
+    const webSearchMatch = text.match(webSearchRegex);
+    if (webSearchMatch && !norm.includes('youtube') && !norm.includes('focus') && !norm.includes('tab')) {
+      const query = webSearchMatch[1].trim();
+      if (query.length > 0) {
+        return {
+          type: 'ACTION',
+          spokenResponse: `Searching web for ${query}`,
+          action: {
+            name: 'SEARCH_WEB',
+            parameters: { query }
+          },
+          requiresConfirmation: false
+        };
+      }
+    }
+
     if (norm.startsWith('open youtube')) {
       return {
         type: 'ACTION',
@@ -168,6 +186,15 @@ export class LocalCommandParser {
         type: 'ACTION',
         spokenResponse: 'Closing duplicate open tabs',
         action: { name: 'CLOSE_DUPLICATE_TABS', parameters: {} },
+        requiresConfirmation: false
+      };
+    }
+
+    if (norm.includes('clean session') || norm.includes('clear session') || norm.includes('clean workspace') || norm === 'clean session' || norm === 'clean') {
+      return {
+        type: 'ACTION',
+        spokenResponse: 'Cleaning session and checking duplicate tabs',
+        action: { name: 'CLEAN_SESSION', parameters: {} },
         requiresConfirmation: false
       };
     }

@@ -23,13 +23,26 @@ export const BrowserTools: React.FC<BrowserToolsProps> = ({
           <p className="text-lg font-bold text-slate-100 mt-0.5">{totalTabsCount} Open Tabs</p>
         </div>
         {duplicateCount > 0 ? (
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-            {duplicateCount} Duplicates Found
-          </span>
+          <button
+            onClick={() => onExecuteLocalAction('CLOSE_DUPLICATE_TABS')}
+            disabled={isLoading}
+            className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+            title="Click to clean duplicate tabs"
+          >
+            <CopyX className="w-3.5 h-3.5" />
+            <span>{duplicateCount} Duplicates</span>
+            <span className="font-bold underline ml-1">Clean Now</span>
+          </button>
         ) : (
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            Clean Session
-          </span>
+          <button
+            onClick={() => onExecuteLocalAction('CLEAN_SESSION')}
+            disabled={isLoading}
+            className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+            title="Click to run full session cleanup"
+          >
+            <RotateCw className="w-3.5 h-3.5 text-emerald-400 animate-spin-once" />
+            <span>Clean Session</span>
+          </button>
         )}
       </div>
 

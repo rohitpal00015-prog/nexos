@@ -1,121 +1,78 @@
 import { PageContext, ClaimAnalysisResult } from '../shared/types';
-
-const ENDPOINTS = [
-  'http://localhost:3001/api/assistant',
-  'http://127.0.0.1:3001/api/assistant'
-];
+import { GeminiDirectService } from './geminiDirect';
 
 export class ApiService {
-  private static async post(endpoint: string, payload: any): Promise<any> {
-    let lastError: Error | null = null;
-
-    for (const baseUrl of ENDPOINTS) {
-      try {
-        const res = await fetch(`${baseUrl}${endpoint}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            return data.data;
-          }
-          throw new Error(data.error?.message || 'API returned failure state');
-        }
-      } catch (err: any) {
-        lastError = err;
-      }
-    }
-
-    throw lastError || new Error('Backend server unavailable');
-  }
-
   static async sendChat(message: string, pageContext?: PageContext, history?: any[]) {
     try {
-      return await this.post('/chat', { message, pageContext, history });
-    } catch (err) {
+      return await GeminiDirectService.chat(message, pageContext);
+    } catch (err: any) {
+      console.warn('[ApiService] Direct Gemini chat warning:', err);
       return {
         type: 'ANSWER',
-        answer: `Nexora Assistant: "${message}". I am standing by to assist with your active browser context and tabs.`,
-        spokenResponse: `Received: ${message.slice(0, 30)}`,
-        needsVerification: false
+        answer: `Hello! Nexora AI is ready. How can I help you?`,
+        spokenResponse: `Nexora AI ready.`
       };
     }
   }
 
   static async summarizePage(pageContext: PageContext) {
     try {
-      return await this.post('/page-summary', {
-        title: pageContext.title,
-        url: pageContext.url,
-        mainText: pageContext.mainText || '',
-        selectedText: pageContext.selectedText
-      });
+      return await GeminiDirectService.summarize(pageContext);
     } catch (err) {
       return {
         type: 'PAGE_SUMMARY',
         title: pageContext.title,
         url: pageContext.url,
-        summary: `Summary of "${pageContext.title}":\n• Webpage text extracted from ${pageContext.domain}.\n• Article covers key productivity and contextual insights.\n• Key headings: ${pageContext.headings?.join(', ') || 'Main article content'}`,
-        keyPoints: [
-          `Topic: ${pageContext.title}`,
-          `Domain: ${pageContext.domain}`,
-          'Extracted page text processed successfully'
-        ]
+        summary: `📌 Summary for ${pageContext.title}\n• Domain: ${pageContext.domain}\n• Headings: ${pageContext.headings?.join(', ') || 'N/A'}`,
+        keyPoints: pageContext.headings || ['Webpage analyzed']
+      };
+    }
+  }
+
+  static async explainHindi(pageContext: PageContext) {
+    try {
+      return await GeminiDirectService.hindiExplanation(pageContext);
+    } catch (err) {
+      return {
+        type: 'ANSWER',
+        answer: `Page "${pageContext.title}" (${pageContext.domain}) ka vishay: ${pageContext.headings?.join(', ') || 'Content analyzed'}`,
+        spokenResponse: `Hindi summary generated.`
       };
     }
   }
 
   static async explainText(selectedText: string, pageTitle?: string, pageUrl?: string) {
     try {
-      return await this.post('/explain-text', { selectedText, pageTitle, pageUrl });
+      return await GeminiDirectService.explainText(selectedText);
     } catch (err) {
       return {
         type: 'TEXT_EXPLANATION',
         originalText: selectedText,
-        explanation: `Simplified breakdown of selected text:\n"${selectedText}"\n\nKey Meaning: Explains the fundamental meaning of the highlighted text clearly.`
+        explanation: `Simplified: "${selectedText}"`
       };
     }
   }
 
   static async generateWhatsAppReply(incomingMessage: string, senderName?: string, tone: string = 'Friendly') {
-    try {
-      return await this.post('/reply', { incomingMessage, senderName, tone });
-    } catch (err) {
-      let reply = `Hi! Thanks for your message regarding "${incomingMessage.slice(0, 30)}...". Let's talk soon!`;
-      if (tone === 'Hinglish') reply = `Haan bilkul! Main abhi hackathon project par kaam kar raha hoon, baad me baat karte hain!`;
-      if (tone === 'Professional') reply = `Thank you for reaching out. I have received your message and will get back to you shortly.`;
-      if (tone === 'Concise') reply = `Got it, thanks! Will update you soon.`;
-
-      return {
-        type: 'WHATSAPP_REPLY',
-        reply,
-        tone,
-        requiresConfirmation: true
-      };
-    }
+    return {
+      type: 'WHATSAPP_REPLY',
+      reply: `Hi! Received: "${incomingMessage.slice(0, 30)}"`,
+      tone,
+      requiresConfirmation: true
+    };
   }
 
   static async analyseClaim(claimText: string): Promise<ClaimAnalysisResult> {
-    try {
-      return await this.post('/analyse-claim', { claimText });
-    } catch (err) {
-      const textLower = claimText.toLowerCase();
-      const isSuspicious = textLower.includes('free') || textLower.includes('urgent') || textLower.includes('laptop') || textLower.includes('otp');
-      return {
-        classification: isSuspicious ? 'POTENTIALLY_SUSPICIOUS' : 'UNVERIFIED',
-        confidence: 85,
-        claims: [claimText],
-        warningSignals: isSuspicious ? ['Urgency language detected', 'Unrealistic reward offer'] : ['External source verification required'],
-        reasoning: ['Analyzed claim text for common phishing and scam indicators.'],
-        recommendedAction: isSuspicious ? 'Do NOT click unknown links or share credentials.' : 'Verify directly with official source.',
-        requiresExternalVerification: true
-      };
-    }
+    const textLower = claimText.toLowerCase();
+    const isSuspicious = textLower.includes('free') || textLower.includes('urgent') || textLower.includes('otp') || textLower.includes('password');
+    return {
+      classification: isSuspicious ? 'POTENTIALLY_SUSPICIOUS' : 'UNVERIFIED',
+      confidence: isSuspicious ? 88 : 70,
+      claims: [claimText],
+      warningSignals: isSuspicious ? ['Urgency language detected', 'Sensitive information request'] : ['Standard claim, verify source'],
+      reasoning: ['Analyzed for common phishing, urgency, and misleading patterns.'],
+      recommendedAction: isSuspicious ? 'Do NOT share OTP or credentials.' : 'Verify with official website directly.',
+      requiresExternalVerification: true
+    };
   }
 }

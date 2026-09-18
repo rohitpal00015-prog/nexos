@@ -52,6 +52,14 @@ export class ActionExecutor {
           return { success: true, message: `Searched YouTube for "${parameters?.query}"`, data: { tabId: tab.id } };
         }
 
+        case 'SEARCH_WEB': {
+          const rawQuery = parameters?.query || 'Google Search';
+          const query = encodeURIComponent(rawQuery);
+          const url = `https://www.google.com/search?q=${query}`;
+          const tab = await TabManager.openOrActivateTab(url);
+          return { success: true, message: `Searched web for "${rawQuery}"`, data: { tabId: tab.id } };
+        }
+
         case 'CLOSE_CURRENT_TAB': {
           const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
           if (activeTab && activeTab.id) {
@@ -137,6 +145,17 @@ export class ActionExecutor {
             return { success: true, message: 'Inserted text into WhatsApp composer', data: response };
           }
           return { success: false, message: 'No active tab to insert text' };
+        }
+
+        case 'CLEAN_SESSION': {
+          const duplicateCount = await TabManager.closeDuplicateTabs();
+          return {
+            success: true,
+            message: duplicateCount > 0
+              ? `Session cleaned! Closed ${duplicateCount} duplicate tab(s) and refreshed workspace.`
+              : 'Session is clean! No duplicate tabs found. Workspace refreshed.',
+            data: { duplicateCount }
+          };
         }
 
         default:

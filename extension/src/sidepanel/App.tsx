@@ -5,7 +5,6 @@ import { PageCard } from './components/PageCard';
 import { Chat } from './components/Chat';
 import { BrowserTools } from './components/BrowserTools';
 import { ProductivityPanel } from './components/ProductivityPanel';
-import { WhatsAppPanel } from './components/WhatsAppPanel';
 import { PrivacyPanel } from './components/PrivacyPanel';
 import { ConfirmationModal } from './components/ConfirmationModal';
 
@@ -18,7 +17,7 @@ import { StorageService, UserSettings } from '../services/storage';
 
 export default function App() {
   const [status, setStatus] = useState<AssistantStatus>('Ready');
-  const [activeSection, setActiveSection] = useState<'chat' | 'tools' | 'productivity' | 'whatsapp' | 'privacy'>('chat');
+  const [activeSection, setActiveSection] = useState<'chat' | 'tools' | 'productivity' | 'privacy'>('chat');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pendingConfirmation, setPendingConfirmation] = useState<ActionResponse | null>(null);
 
@@ -35,7 +34,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { activeTab, pageContext, whatsappContext, totalTabsCount, duplicateCount, isRestrictedPage, refreshTabState } = useTabState();
-  const { isListening, startListening, stopListening, speakText } = useVoice();
+  const { isListening, startListening, stopListening, speakText, error: voiceError, clearError: clearVoiceError } = useVoice();
   const { timerState, startTimer, pauseTimer, resumeTimer, stopTimer } = useFocusTimer();
 
   useEffect(() => {
@@ -119,7 +118,7 @@ export default function App() {
         userSettings.pageContextEnabled && pageContext ? pageContext : undefined
       );
 
-      let content = response.answer || response.spokenResponse || 'Processing your request...';
+      let content = response.answer || response.markdownResponse || response.content || response.spokenResponse || 'Processing your request...';
       if (response.type === 'ACTION' && response.action) {
         content = `Action Proposed: ${response.action.name}. ${response.spokenResponse || ''}`;
       }
@@ -156,9 +155,19 @@ export default function App() {
   const handleExecuteAction = async (action: any) => {
     setStatus('Executing');
     if (chrome.runtime && chrome.runtime.sendMessage) {
-      chrome.runtime.sendMessage({ type: 'EXECUTE_ACTION', action }, (res) => {
+      chrome.runtime.sendMessage({ type: 'EXECUTE_ACTION', action }, async (res) => {
         refreshTabState();
         setStatus('Ready');
+        if (res && res.message) {
+          const actionMsg: ChatMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: res.message,
+            timestamp: Date.now()
+          };
+          setMessages(prev => [...prev, actionMsg]);
+          await StorageService.saveChatMessage(actionMsg);
+        }
       });
     }
   };
@@ -186,6 +195,28 @@ export default function App() {
       };
       setMessages(prev => [...prev, summaryMsg]);
       await StorageService.saveChatMessage(summaryMsg);
+      setActiveSection('chat');
+    } finally {
+      setIsLoading(false);
+      setStatus('Ready');
+    }
+  };
+
+  const handleExplainHindi = async () => {
+    if (!pageContext || isRestrictedPage) return;
+    setIsLoading(true);
+    setStatus('Thinking');
+
+    try {
+      const result = await ApiService.explainHindi(pageContext);
+      const hindiMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: result.answer,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, hindiMsg]);
+      await StorageService.saveChatMessage(hindiMsg);
       setActiveSection('chat');
     } finally {
       setIsLoading(false);
@@ -256,6 +287,15 @@ export default function App() {
     try {
       const result = await ApiService.analyseClaim(text);
       setClaimAnalysisResult(result);
+      const claimMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `Analyzed message for scam & phishing signals: "${text.slice(0, 40)}..."`,
+        timestamp: Date.now(),
+        claimAnalysis: result
+      };
+      setMessages(prev => [...prev, claimMsg]);
+      await StorageService.saveChatMessage(claimMsg);
     } finally {
       setIsLoading(false);
     }
@@ -273,7 +313,6 @@ export default function App() {
         status={status}
         activeSection={activeSection}
         setActiveSection={setActiveSection}
-        isWhatsAppActive={whatsappContext.isWhatsApp}
       />
 
       <main className="flex-1 p-3 space-y-3">
@@ -283,10 +322,11 @@ export default function App() {
             pageContext={pageContext}
             isRestrictedPage={isRestrictedPage}
             onSummarize={handleSummarizePage}
+            onExplainHindi={handleExplainHindi}
             onExplainSelection={handleExplainSelection}
             onAskAboutPage={() => {
               setActiveSection('chat');
-              handleSendMessage(`Tell me more about the content on this page: ${pageContext?.title}`);
+              handleSendMessage('Give me 5 key bullet takeaways from this page');
             }}
             isLoading={isLoading}
           />
@@ -303,6 +343,8 @@ export default function App() {
             onSpeak={(txt) => speakText(txt, userSettings.language)}
             onConfirmAction={handleConfirmAction}
             isLoading={isLoading}
+            voiceError={voiceError}
+            onClearVoiceError={clearVoiceError}
           />
         )}
 
@@ -316,8 +358,19 @@ export default function App() {
                   type: 'ACTION',
                   action: { name: 'CLOSE_DUPLICATE_TABS' },
                   requiresConfirmation: true,
-                  confirmationDetails: `Close ${duplicateCount} duplicate open tabs?`
+                  confirmationDetails: `Close ${duplicateCount} duplicate open tab(s)?`
                 });
+              } else if (actionName === 'CLEAN_SESSION') {
+                if (duplicateCount > 0) {
+                  setPendingConfirmation({
+                    type: 'ACTION',
+                    action: { name: 'CLEAN_SESSION' },
+                    requiresConfirmation: true,
+                    confirmationDetails: `Clean session and close ${duplicateCount} duplicate open tab(s)?`
+                  });
+                } else {
+                  handleExecuteAction({ name: 'CLEAN_SESSION', parameters: params });
+                }
               } else {
                 handleExecuteAction({ name: actionName, parameters: params });
               }
@@ -334,20 +387,6 @@ export default function App() {
             onResumeTimer={resumeTimer}
             onStopTimer={stopTimer}
             totalTabsCount={totalTabsCount}
-          />
-        )}
-
-        {activeSection === 'whatsapp' && (
-          <WhatsAppPanel
-            whatsappContext={whatsappContext}
-            onRefreshWhatsApp={refreshTabState}
-            onGenerateReply={handleGenerateWhatsAppReply}
-            onInsertReply={handleInsertWhatsAppReply}
-            onAnalyseClaim={handleAnalyseClaim}
-            replyDraft={whatsappReplyDraft}
-            setReplyDraft={setWhatsappReplyDraft}
-            claimResult={claimAnalysisResult}
-            isLoading={isLoading}
           />
         )}
 

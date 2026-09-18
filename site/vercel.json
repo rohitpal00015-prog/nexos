@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "name": "nexora-ai-copilot",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

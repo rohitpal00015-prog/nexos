@@ -4,16 +4,14 @@ import { Sparkles, Shield, Mic, Bot, AlertTriangle, CheckCircle2 } from 'lucide-
 
 interface HeaderProps {
   status: AssistantStatus;
-  activeSection: 'chat' | 'tools' | 'productivity' | 'whatsapp' | 'privacy';
-  setActiveSection: (sec: 'chat' | 'tools' | 'productivity' | 'whatsapp' | 'privacy') => void;
-  isWhatsAppActive: boolean;
+  activeSection: 'chat' | 'tools' | 'productivity' | 'privacy';
+  setActiveSection: (sec: 'chat' | 'tools' | 'productivity' | 'privacy') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   status,
   activeSection,
-  setActiveSection,
-  isWhatsAppActive
+  setActiveSection
 }) => {
   const getStatusBadge = () => {
     switch (status) {
@@ -125,19 +123,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           Focus
         </button>
-        {isWhatsAppActive && (
-          <button
-            onClick={() => setActiveSection('whatsapp')}
-            className={`flex-1 py-1.5 rounded-lg text-center transition relative ${
-              activeSection === 'whatsapp'
-                ? 'bg-emerald-600 text-white shadow'
-                : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30'
-            }`}
-          >
-            WhatsApp
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          </button>
-        )}
       </nav>
     </header>
   );

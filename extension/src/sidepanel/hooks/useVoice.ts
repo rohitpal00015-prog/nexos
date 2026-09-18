@@ -43,10 +43,13 @@ export function useVoice() {
     SpeechService.stopSpeaking();
   }, []);
 
+  const clearError = useCallback(() => setError(null), []);
+
   return {
     isListening,
     transcript,
     error,
+    clearError,
     startListening,
     stopListening,
     speakText,

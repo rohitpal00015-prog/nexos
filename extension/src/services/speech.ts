@@ -9,15 +9,13 @@ export class SpeechService {
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Stop stream tracks immediately after permission is granted
         stream.getTracks().forEach(track => track.stop());
         return true;
       }
-      return true;
     } catch (err: any) {
-      console.warn('[SpeechService] Mic permission notice:', err.message);
-      return false;
+      console.warn('[SpeechService] getUserMedia permission notice:', err?.message || err);
     }
+    return true; // Fallback to direct SpeechRecognition initialization
   }
 
   static async startListening(
@@ -27,15 +25,17 @@ export class SpeechService {
     lang: string = 'en-IN'
   ) {
     if (!this.isSpeechSupported()) {
-      onError('Speech recognition is not supported in this browser.');
+      onError('Speech recognition is not supported in this browser environment.');
       onEnd();
       return;
     }
 
-    // Explicitly request microphone access first
+    // Clean up any existing recognition instance to prevent InvalidStateError
+    this.stopListening();
+
     const hasPermission = await this.requestMicPermission();
     if (!hasPermission) {
-      onError('Microphone permission denied. Please allow microphone access in Chrome.');
+      onError('Microphone permission denied. Please allow microphone access in Chrome settings.');
       onEnd();
       return;
     }
@@ -67,19 +67,31 @@ export class SpeechService {
       };
 
       this.recognition.onerror = (event: any) => {
-        let msg = 'Speech recognition notice.';
-        if (event.error === 'not-allowed') msg = 'Microphone permission denied. Click mic again to grant permission.';
-        if (event.error === 'no-speech') msg = 'No speech detected. Please speak louder into your microphone.';
-        onError(msg);
+        let msg = '';
+        if (event.error === 'not-allowed') {
+          msg = 'Microphone permission denied. Please enable mic access in browser settings.';
+        } else if (event.error === 'no-speech') {
+          msg = 'No speech detected. Please speak clearly into your microphone.';
+        } else if (event.error === 'network') {
+          msg = 'Network connection issue for speech recognition.';
+        } else if (event.error === 'audio-capture') {
+          msg = 'No microphone device found. Please plug in a microphone.';
+        } else if (event.error !== 'aborted') {
+          msg = `Speech error: ${event.error}`;
+        }
+        if (msg) onError(msg);
       };
 
       this.recognition.onend = () => {
+        this.recognition = null;
         onEnd();
       };
 
       this.recognition.start();
     } catch (err: any) {
-      onError(`Microphone error: ${err.message}`);
+      console.warn('[SpeechService] Recognition start error:', err);
+      onError(`Microphone notice: ${err?.message || 'Could not start microphone'}`);
+      this.recognition = null;
       onEnd();
     }
   }
@@ -88,8 +100,11 @@ export class SpeechService {
     if (this.recognition) {
       try {
         this.recognition.stop();
+        this.recognition.abort();
       } catch (err) {
-        console.log('[SpeechService] Stop listening error:', err);
+        console.log('[SpeechService] Stop listening cleanup:', err);
+      } finally {
+        this.recognition = null;
       }
     }
   }
