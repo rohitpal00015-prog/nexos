@@ -1,224 +1,229 @@
-# Nexora AI — Intelligent Browser Copilot
+# Nexora AI — Intelligent In-Browser Copilot
 
-> **Talk to your browser. Understand the web. Stay productive.**
+<div align="center">
 
-Nexora AI is a privacy-conscious, AI-powered Chrome browser copilot built with Manifest V3, React, TypeScript, Tailwind CSS, Chrome Side Panel API, and a secure Node.js/Express backend powered by Google Gemini AI.
+[![Chrome Manifest V3](https://img.shields.io/badge/Chrome_Extension-Manifest_V3-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/intro/)
+[![React](https://img.shields.io/badge/React_18-TypeScript-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Bundled_with-Vite_5-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Gemini AI](https://img.shields.io/badge/AI_Engine-Google_Gemini_Flash-8E75B2?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Styled_with-Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
----
+**Talk to your browser. Understand any webpage. Stay productive without leaving your flow.**
 
-## 1. Problem Statement
-
-Modern web browsing often involves juggling dozens of open tabs, reading length articles, managing multi-task communication on platforms like WhatsApp Web, and dealing with misleading or high-urgency messages. Traditional AI tools exist as isolated chatbots that have no awareness of what you are viewing or doing inside your browser.
-
-## 2. Solution Overview
-
-Nexora AI bridges this gap by acting as a native browser copilot. It reads safe active tab context, parses natural language text or voice instructions through a two-layer command processing architecture, and executes controlled browser actions (tab management, YouTube search, focus session timer, page summarization, WhatsApp reply drafting, and suspicious claim verification).
-
----
-
-## 3. Key Features
-
-- 💬 **Interactive Sidepanel Copilot**: Natural-language conversational interface embedded directly inside Chrome's Side Panel.
-- 🎙️ **Push-to-Talk Voice Controls**: Hands-free voice recognition (Web Speech API) supporting English & Indian English commands with optional SpeechSynthesis spoken answers.
-- ⚡ **Two-Layer Command Parser**:
-  - **Layer 1 (Local Deterministic Parser)**: Executes instant local commands ("Open YouTube", "Group tabs", "Mute tab", "Start 25 min focus", "Close duplicates") locally without API latency.
-  - **Layer 2 (Gemini AI Engine)**: Solves complex queries, generates page summaries, explains selected text, drafts WhatsApp replies, and analyzes claims.
-- 📑 **Smart Tab Management**:
-  - Domain-based tab grouping (Study, Work, Social, Media, Documentation).
-  - Duplicate tab detection with URL normalization (stripping tracking parameters and fragments).
-  - Quick tab controls (Mute, Unmute, Refresh, Close).
-- 💬 **WhatsApp Web Integration**:
-  - Detects active WhatsApp Web chat context.
-  - Generates replies tailored to requested tones (*Friendly, Professional, Hinglish, Concise, Polite, Formal*).
-  - Inserts drafted replies into the composer **without auto-sending**, leaving the user in 100% control.
-- 🛡️ **Suspicious Message & Claim Analysis**: Analyzes text for urgency signals, scam patterns, phishing indicators, and unverified claims with confidence scores and recommended safety steps.
-- ⏱️ **Pomodoro Focus Timer**: 25-minute Pomodoro timer backed by `chrome.alarms` and `chrome.storage.local` that survives side-panel closures.
-- 🔒 **Privacy & Security First**: Action allowlisting (`ALLOWED_ACTIONS`), user confirmation prompts for sensitive operations, webpage prompt-injection defenses, and local data clearing controls.
+</div>
 
 ---
 
-## 4. Architecture Diagram
+## 📌 1. Overview
+
+**Nexora AI** is a lightweight, privacy-focused, AI-powered browser copilot embedded natively inside Google Chrome's **Side Panel**. Unlike generic chatbot tabs, Nexora AI is aware of your active browsing context: it reads webpage content in real-time, answers questions about what you are viewing, cleans up tab clutter, and executes browser actions via text or voice.
+
+### 🌟 What Makes Nexora AI Different?
+- **100% Serverless & Standalone**: Communicates directly with Google Gemini's Generative Language API from within the extension. **No background server, no Node.js terminal, and no local ports needed to run!**
+- **Zero-Disturbance Design**: Executes actions in background tabs without hijacking your active focus.
+- **Zero-Typing Suggestion Engine**: Rich, categorized instant-action chips that let you perform summaries, tab cleaning, and searches with a single tap.
+- **Multilingual Context Understanding**: Native support for English, Hindi, and Hinglish queries (e.g., *"Is page ko aasan Hindi me samjhao"* or *"Wiki kitni baar likha hua hai?"*).
+
+---
+
+## 🚀 2. Key Features
+
+### 🧠 Direct In-Extension Gemini AI
+- Powered by Google's latest **Gemini Flash models** (`gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3-flash-preview`, and `gemini-3.6-flash`).
+- Built-in automatic model failover ensures uninterrupted responses even during high API demand.
+- Full context grounding: passes clean extracted page headings, word counts, and readable text to the model.
+
+### 📑 Active Webpage Intelligence
+- **Reading Time & Word Count**: Automatically analyzes active page density (e.g., `~1,250 words • 4 min read`).
+- **⚡ 30s Executive Summary**: Synthesizes the core thesis and takeaways of any article or documentation.
+- **🌐 Hindi Explanation**: Translates and breaks down complex technical or English articles into clear, accessible Hindi.
+- **💡 Key Points Extraction**: Extracts the top 5 bullet takeaways from long-form content.
+- **🔍 Explain Selection**: Highlight any paragraph on any webpage and receive an instant simplified breakdown.
+
+### ⚡ Smart Suggestions (Zero-Typing Experience)
+- **Interactive Suggestion Pills**: Filter by category (*All*, *Page Insights*, *Browser Controls*, *Search & Media*).
+- **1-Click Execution**: Tap any chip to execute without typing:
+  - `📄 30s Summary`
+  - `🌐 Hindi me Samjhao`
+  - `💡 5 Key Takeaways`
+  - `🔍 "Wiki" count karo`
+  - `🧹 Close Duplicate Tabs`
+  - `📂 Group Open Tabs`
+  - `🎵 Play Lo-Fi Music`
+  - `🔎 Search Free Meeting`
+  - `⏱️ 25m Focus Timer`
+
+### 📑 Browser Tab & Workspace Management
+- **Duplicate Tab Detection**: Identifies and closes duplicate tabs with smart URL normalization (stripping tracking parameters and hashes).
+- **Domain Categorization**: Automatically groups open tabs into colored Chrome tab groups (*Study, Work, Social, Media, Documentation*).
+- **Tab Controls**: Instant mute/unmute, page refresh, and back/forward navigation.
+
+### 🎙️ Hands-Free Push-to-Talk Voice
+- Built with the browser's native **Web Speech API** for rapid speech-to-text.
+- **1-Click Permission Helper (`permission.html`)**: Solves Chrome's Side Panel audio permission restriction with a seamless one-time grant tab.
+- Spoken audio responses via **SpeechSynthesis** (customizable in settings).
+
+---
+
+## 🏗️ 3. Architecture
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           CHROME SIDE PANEL UI                              │
-│                (React + TypeScript + Tailwind CSS + Lucide)                 │
+│                          CHROME SIDE PANEL UI                               │
+│              (React 18 + TypeScript + Tailwind CSS + Lucide)                │
+│                                                                             │
+│  [ Header & Status ]  [ Active Page Card ]  [ Chat Feed ]  [ Suggestion Chips]
 └──────────────────────────────────────┬──────────────────────────────────────┘
-                                       │ chrome.runtime.sendMessage
+                                       │
+                        User Command / Chip Clicked
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         BACKGROUND SERVICE WORKER                           │
-│                      (src/background/background.ts)                          │
+│                         TWO-LAYER COMMAND ROUTER                            │
 │                                                                             │
-│   ┌────────────────────────────────┐     ┌──────────────────────────────┐   │
-│   │ Layer 1: Local Command Parser  │     │ Action Allowlist & Executor  │   │
-│   │  (Instant Local Execution)     │────►│  (chrome.tabs, tabGroups,   │   │
-│   └──────────────┬─────────────────┘     │   scripting, alarms)         │   │
-└──────────────────┼───────────────────────┴──────────────▲───────────────┘
-                   │ If complex AI request                │ Returns Action
-                   ▼                                      │
-┌─────────────────────────────────────────────────────────┴───────────────────┐
-│                           EXPRESS BACKEND SERVER                            │
-│                        (http://localhost:3001/api)                          │
-│                                                                             │
-│    POST /chat  │  POST /page-summary  │  POST /reply  │  POST /analyse-claim  │
-│                                                                             │
-│                                      ▼                                      │
-│                           GOOGLE GEMINI 1.5 FLASH                           │
-│                   (Structured JSON via Zod Schemas)                         │
-└─────────────────────────────────────────────────────────────────────────────┘
+│  ┌─────────────────────────────────┐      ┌──────────────────────────────┐  │
+│  │ Layer 1: Local Command Parser   │      │ Layer 2: Direct Gemini AI    │  │
+│  │  (Instant Regex Execution)      │      │  (Serverless In-Extension)   │  │
+│  │  • Mute Tab      • Clean Tabs   │      │  • Page Summaries            │  │
+│  │  • Focus Timer   • YouTube Search│     │  • Hindi Explanations        │  │
+│  │  • Web Search    • Group Tabs   │      │  • Keyword Frequency         │  │
+│  └────────────────┬────────────────┘      └──────────────┬───────────────┘  │
+└───────────────────┼──────────────────────────────────────┼──────────────────┘
+                    │                                      │
+                    ▼                                      ▼
+┌──────────────────────────────────────┐  ┌───────────────────────────────────┐
+│       CHROME EXTENSION NATIVE APIs   │  │    GOOGLE GENERATIVE LANGUAGE     │
+│   chrome.tabs       chrome.tabGroups │  │              REST API             │
+│   chrome.scripting  chrome.alarms    │  │  (gemini-3.5-flash / 3.6-flash)   │
+└──────────────────────────────────────┘  └───────────────────────────────────┘
 ```
 
 ---
 
-## 5. Technology Stack
+## 💻 4. Technology Stack
 
-- **Extension Frontend**: Manifest V3, React 18, Vite, TypeScript, Tailwind CSS, Lucide Icons, Web Speech API.
-- **Chrome Extension APIs**: Chrome Side Panel API, Chrome Tabs API, Chrome Tab Groups API, Chrome Scripting API, Chrome Storage API, Chrome Alarms API, Chrome Runtime Messaging API.
-- **Backend API**: Node.js, Express, TypeScript, `@google/generative-ai` (Gemini 1.5 Flash), Zod validation, Helmet, CORS, Express Rate Limit.
+- **Extension Framework**: Manifest V3 (MV3) specification
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Lucide React
+- **Build System**: Vite 5 with Rollup chunking
+- **AI Integration**: Google Generative Language REST API (Gemini 3.5 & 3.6 Flash)
+- **Native Extension APIs**:
+  - `chrome.sidePanel`: Embedded side panel experience
+  - `chrome.tabs` & `chrome.tabGroups`: Tab lifecycle, grouping, and tab cleaning
+  - `chrome.scripting`: Non-destructive DOM content extraction
+  - `chrome.alarms`: Persistent Pomodoro timer background intervals
+  - `chrome.storage.local`: Settings, chat history, and API key preferences
 
 ---
 
-## 6. Repository Structure
+## 📁 5. Repository Structure
 
 ```text
 nexora-ai/
 │
-├── extension/                  # Chrome Extension Frontend
+├── extension/                  # Chrome Extension Root
 │   ├── public/
-│   │   ├── manifest.json       # Manifest V3 Specification
-│   │   ├── sidepanel.html      # Side panel entry HTML
-│   │   └── icons/              # Extension icons
+│   │   ├── manifest.json       # Manifest V3 Configuration & Host Permissions
+│   │   ├── permission.html     # 1-Click Microphone Permission Helper
+│   │   └── icons/              # Extension icons (16px, 48px, 128px)
 │   ├── src/
-│   │   ├── background/         # Service worker, command router, tab/focus managers
-│   │   ├── content/            # DOM text extractor, WhatsApp adapter, YouTube adapter
-│   │   ├── sidepanel/          # React components, custom hooks, styles
-│   │   ├── services/           # API wrapper, Speech recognition, Chrome storage
-│   │   └── shared/             # TypeScript types, action allowlist constants
-│   ├── vite.config.ts
-│   └── package.json
+│   │   ├── background/         # Service Worker & Action Executors
+│   │   │   ├── background.ts         # Service worker message router
+│   │   │   ├── actionExecutor.ts     # Chrome API action handler
+│   │   │   ├── localCommandParser.ts # Deterministic command regex parser
+│   │   │   ├── tabManager.ts         # Tab grouping & duplicate cleanup
+│   │   │   └── focusManager.ts       # 25-minute Pomodoro alarm logic
+│   │   ├── content/            # Webpage Content Scripts
+│   │   │   ├── content.ts            # Content script message bridge
+│   │   │   └── pageExtractor.ts      # Safe DOM text & heading extractor
+│   │   ├── services/           # Services & AI Engine
+│   │   │   ├── geminiDirect.ts       # 🚀 Direct Google Gemini REST API Client
+│   │   │   ├── api.ts                # Unified API service layer
+│   │   │   ├── speech.ts             # Web Speech recognition & TTS
+│   │   │   └── storage.ts            # Local Chrome storage wrapper
+│   │   ├── sidepanel/          # React User Interface
+│   │   │   ├── App.tsx               # Main Copilot Application
+│   │   │   ├── components/           # UI Components (Header, PageCard, Chat)
+│   │   │   └── hooks/                # Custom React hooks (Voice, TabState, Timer)
+│   │   └── shared/             # TypeScript Types & Constants
+│   ├── vite.config.ts          # Vite build configuration
+│   └── package.json            # Extension dependencies
 │
-├── server/                     # Express Backend Server
-│   ├── src/
-│   │   ├── controllers/        # Request handlers
-│   │   ├── routes/             # REST endpoints (/api/assistant/*)
-│   │   ├── services/           # Gemini AI SDK integration & fallbacks
-│   │   ├── prompts/            # Prompt-injection defense system prompts
-│   │   └── schemas/            # Zod validation schemas
-│   ├── .env.example
-│   └── package.json
-│
-├── package.json                # Monorepo orchestration
-└── README.md
+├── server/                     # (Optional) Express backend server for custom setups
+├── package.json                # Monorepo orchestration scripts
+└── README.md                   # Project documentation
 ```
 
 ---
 
-## 7. Installation & Quickstart Guide
+## ⚡ 6. Installation & Quickstart
 
 ### Prerequisites
-- Node.js (v18+ or v20+)
-- npm (v9+)
-- Google Chrome Browser
+- [Node.js](https://nodejs.org/) (v18 or v20+)
+- [Google Chrome](https://www.google.com/chrome/) browser
 
-### Step 1: Install Dependencies
-From the repository root directory:
+### Step 1: Clone the Repository
 ```bash
-npm --prefix server install
+git clone https://github.com/rohitpal00015-prog/nexos.git
+cd nexos
+```
+
+### Step 2: Install Dependencies & Build
+```bash
 npm --prefix extension install
-```
-
-### Step 2: Configure Environment Variables
-Copy `.env.example` in the `server` folder to `.env`:
-```bash
-cp server/.env.example server/.env
-```
-Edit `server/.env` and add your Google Gemini API Key:
-```env
-PORT=3001
-GEMINI_API_KEY=your_actual_gemini_api_key_here
-```
-*(Note: If no API key is provided, Nexora automatically runs in intelligent fallback demo mode for hackathon testing!)*
-
-### Step 3: Build Extension Package
-```bash
 npm run build:extension
 ```
-This builds the Chrome Extension distribution files into `extension/dist`.
-
-### Step 4: Start Backend Server
-```bash
-npm run start:server
-# Or for development:
-npm run dev:server
-```
-The backend server runs on `http://localhost:3001`. Verify health check at `http://localhost:3001/api/assistant/health`.
+This will compile the extension and generate distribution assets in `extension/dist`.
 
 ---
 
-## 8. Loading the Extension in Google Chrome
+## 🧩 7. Loading into Google Chrome
 
-1. Open Google Chrome and navigate to `chrome://extensions`.
-2. Enable **Developer mode** in the top-right corner toggle.
-3. Click the **Load unpacked** button.
-4. Select the `extension/dist` folder inside your project directory (`c:\Users\visha\Desktop\nexora AI\extension\dist`).
-5. Click the puzzle icon in Chrome's top toolbar, find **Nexora AI**, and pin it.
-6. Click the Nexora toolbar icon to open the **Chrome Side Panel**!
+1. Open Google Chrome and navigate to:
+   ```text
+   chrome://extensions
+   ```
+2. Enable **Developer mode** toggle in the top-right corner.
+3. Click the **Load unpacked** button in the top-left corner.
+4. Select the `extension/dist` folder inside your cloned repository:
+   ```text
+   c:\Users\...\nexos\extension\dist
+   ```
+5. Click the puzzle piece icon (Extensions) in Chrome's top toolbar, find **Nexora AI**, and pin it.
+6. Click the pinned Nexora AI icon to launch the **Side Panel**!
 
----
-
-## 9. Hackathon Demonstration Walkthrough
-
-Try the following demo commands inside the side panel:
-
-### Demo 1: Browser Control
-- Type: `Open YouTube and search for relaxing lofi music`
-- *Result*: YouTube opens and navigates directly to search results for lo-fi music.
-
-### Demo 2: General Knowledge Question
-- Type: `Who is Satya Nadella?`
-- *Result*: Nexora responds with a concise explanation in the chat thread. Click **Speak** to hear spoken audio output.
-
-### Demo 3: Webpage Summarization
-- Open any article webpage (e.g., Wikipedia or news site) and click **Summarize**.
-- *Result*: Main page content is extracted safely, and key takeaways appear as bullet points.
-
-### Demo 4: Selected Text Explanation
-- Highlight any complex sentence or paragraph on a webpage and click **Explain Text**.
-- *Result*: Nexora provides a simplified breakdown of the selected text.
-
-### Demo 5: WhatsApp Web Reply Drafting
-- Open [web.whatsapp.com](https://web.whatsapp.com) and click an active chat.
-- Switch to the **WhatsApp** sub-tab in Nexora Sidepanel.
-- Select tone **Hinglish** or **Professional** and click **Generate Reply**.
-- Click **Insert Reply into Composer**. The drafted message populates the WhatsApp input box without sending automatically!
-
-### Demo 6: Suspicious Claim Analysis
-- In the WhatsApp panel, click **Check Incoming Message for Scams/Urgency**.
-- *Result*: Displays warning signals (e.g. urgency language, unverified promises) and safety recommendations.
-
-### Demo 7: Productivity Focus Session & Tab Clean
-- Go to **Focus** sub-tab or type `Start 25 minute focus timer`.
-- Click **Group Tabs** or **Close Duplicates** in the **Tools** section.
+> [!TIP]
+> **No Backend Required**: Nexora AI connects directly to Google Gemini from inside the browser. You do **not** need to keep any terminal or Node.js server running!
 
 ---
 
-## 10. Privacy & Security
+## 🎯 8. Example Commands & Usage
 
-- **Minimum Necessary Permissions**: Uses `activeTab`, `sidePanel`, `storage`, `tabGroups`, `alarms`, and strict host permissions restricted to `web.whatsapp.com` and `youtube.com`.
-- **Noeval & Protocol Safety**: Restricts all URL actions to `https:` and `http:` protocols. Evaluates no dynamic code or remote scripts.
-- **Untrusted Page Context**: Webpage text is wrapped in system boundaries treating page content as raw data to prevent prompt injection.
-- **No Auto-Messaging**: Text insertion into WhatsApp composer requires human review and manual sending.
+Try testing the following interactions inside the Side Panel:
+
+| Type | What to Say / Click | What Nexora Does |
+| :--- | :--- | :--- |
+| **Page Summary** | Tap `📄 30s Summary` | Generates a 30-second structured breakdown of the active page. |
+| **Hindi Analysis** | Tap `🌐 Hindi me Samjhao` | Explains the active article in natural, conversational Hindi/Hinglish. |
+| **Tab Cleanup** | Tap `🧹 Close Duplicate Tabs` | Analyzes all open tabs, finds matching URLs, and closes duplicates. |
+| **Tab Grouping** | Say: *"Group my open tabs"* | Organizes open tabs into colored domain groups (*Work, Media, Social*). |
+| **Web Search** | Say: *"Go to web and search free meeting"* | Instantly triggers Google Search in a background/new tab. |
+| **Lo-Fi Music** | Tap `🎵 Play Lo-Fi Music` | Navigates directly to YouTube relaxing study beats. |
+| **Text Explanation** | Highlight any paragraph on a page & click `Explain Selected` | Simplifies the highlighted sentence or jargon clearly. |
+| **Keyword Count** | Type: *"mere page per wiki kitani time likha huaa h"* | Analyzes page text and counts the occurrences of the keyword. |
 
 ---
 
-## 11. Troubleshooting
+## 🔒 9. Privacy & Security
 
-- **Side Panel Doesn't Open**: Ensure you selected `extension/dist` when loading unpacked in `chrome://extensions`.
-- **Restricted Page Warning**: Chrome blocks extensions on `chrome://` system URLs. Switch to a normal webpage (`https://...`).
-- **Backend Port Busy**: Update `PORT` in `server/.env` and `BACKEND_URL` in `extension/src/shared/constants.ts` if port 3001 is used.
+- **Strict Allowlisting**: Browser actions are strictly gated by `ALLOWED_ACTIONS` (`SEARCH_WEB`, `OPEN_URL`, `MUTE_CURRENT_TAB`, etc.). Remote prompts cannot execute arbitrary JavaScript.
+- **Untrusted DOM Boundaries**: Content extracted from webpages is treated as raw data. Embedded instructions inside third-party pages are ignored.
+- **Local Control**: API keys and chat histories are stored exclusively in Chrome's isolated `chrome.storage.local`.
+- **No Foreground Hijacking**: Background tasks run without interrupting your mouse, keyboard, or active reading flow.
 
 ---
 
-## 12. License
-MIT License © 2026 Nexora AI Team.
+## 📄 10. License
+
+This project is licensed under the **MIT License**.
+
+© 2026 Nexora AI Team. Built with ❤️ for intelligent, distraction-free web browsing.
